@@ -1,0 +1,3 @@
+- insert:
+    - id: nvidia-models-panel
+      name: 'dsh-nvidia-models-panel'

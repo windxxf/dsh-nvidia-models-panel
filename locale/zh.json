@@ -1,0 +1,25 @@
+{
+  "meta": {
+    "title": "NVIDIA 模型面板",
+    "description": "侧栏面板，用于发现和配置 NVIDIA NIM 模型，带有模型简介"
+  },
+  "panel": {
+    "title": "NVIDIA 模型",
+    "detect": "检测模型",
+    "configure": "配置选中",
+    "selectAll": "全选",
+    "deselectAll": "取消全选",
+    "endpoint": "NIM API 端点",
+    "endpointPlaceholder": "https://integrate.api.nvidia.com/v1/models",
+    "noModels": "暂未检测到模型",
+    "clickDetect": "点击\"检测模型\"以发现可用的 NVIDIA NIM 模型",
+    "detecting": "检测中...",
+    "configuring": "配置中...",
+    "sourceApi": "来自 API",
+    "sourceBuiltin": "内置列表",
+    "contextLength": "上下文: {length}",
+    "modelsFound": "发现 {count} 个 NVIDIA 模型。选择要配置的模型。",
+    "configured": "成功在设置中配置了 {count} 个模型。",
+    "error": "错误: {message}"
+  }
+}

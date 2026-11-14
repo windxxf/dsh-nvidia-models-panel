@@ -1,0 +1,28 @@
+{
+  "name": "dsh-nvidia-models-panel",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Nvidia 模型面板 — 检测 NVIDIA NIM 可用模型、逐个真实试调用验证、面板内保存 API Key，一键配置进 DeepSeek Harness 设置",
+  "keywords": ["dsh", "dsh-plugin", "nvidia", "nim", "llm-provider"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/windxxf/dsh-nvidia-models-panel.git"
+  },
+  "exports": {
+    ".": "./src/index.js",
+    "./client": "./src/client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": ["src/index.js", "src/client.js", "cordis.patch.yml", "locale/*.json", "icon.svg", "README.md", "LICENSE"],
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": ["@deepseek-ai/dsh-client-ui-conversation"]
+    }
+  }
+}

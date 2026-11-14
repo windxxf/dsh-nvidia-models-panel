@@ -1,0 +1,25 @@
+{
+  "meta": {
+    "title": "NVIDIA Models Panel",
+    "description": "Sidebar panel for discovering and configuring NVIDIA NIM models with descriptions"
+  },
+  "panel": {
+    "title": "NVIDIA Models",
+    "detect": "Detect Models",
+    "configure": "Configure Selected",
+    "selectAll": "Select All",
+    "deselectAll": "Deselect All",
+    "endpoint": "NIM API Endpoint",
+    "endpointPlaceholder": "https://integrate.api.nvidia.com/v1/models",
+    "noModels": "No models detected yet",
+    "clickDetect": "Click \"Detect Models\" to discover available NVIDIA NIM models",
+    "detecting": "Detecting...",
+    "configuring": "Configuring...",
+    "sourceApi": "From API",
+    "sourceBuiltin": "Built-in",
+    "contextLength": "Context: {length}",
+    "modelsFound": "Found {count} NVIDIA models. Select models to configure.",
+    "configured": "Successfully configured {count} models in settings.",
+    "error": "Error: {message}"
+  }
+}
