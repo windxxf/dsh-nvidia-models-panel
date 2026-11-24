@@ -20,6 +20,17 @@ window.__ModuleLoader__.load({
 
     const VERIFY_CONCURRENCY = 6;
 
+    // NVIDIA NIM API Key 官方申请地址 + 悬停注册步骤提示。
+    const NVIDIA_KEY_URL = 'https://build.nvidia.com/settings/api-keys';
+    const NVIDIA_KEY_HINT = [
+      '如何获取 NVIDIA API Key：',
+      '1. 打开 build.nvidia.com，用 NVIDIA 开发者账号登录（免费，可能需要手机验证）',
+      '2. 进入头像菜单 → Settings → API Keys（或 build.nvidia.com/settings/api-keys）',
+      '3. 点击 Generate API Key，名称自定义，务必勾选 Public API Endpoints 权限',
+      '4. 复制以 nvapi- 开头的 Key（只显示一次），粘贴到下方输入框并保存',
+      '（点此徽标可直接打开申请页面）',
+    ].join('\n');
+
     function NvidiaPanelIcon(props) {
       const active = !!(props && props.active);
       return h('button', {
@@ -986,7 +997,35 @@ window.__ModuleLoader__.load({
             keyStatus ? (keyStatus.configured
               ? h('span', { style: { fontSize: '11px', color: '#2e7d32', border: '1px solid #2e7d32', borderRadius: '4px', padding: '1px 6px', background: 'rgba(46,125,50,0.10)' } },
                 '已配置' + (keyStatus.source ? '（' + keyStatus.source + '）' : ''))
-              : h('span', { style: { fontSize: '11px', opacity: 0.6, border: '1px dashed rgba(128,128,128,0.5)', borderRadius: '4px', padding: '1px 6px' } }, '未配置')) : null,
+              : h('button', {
+                  type: 'button',
+                  title: NVIDIA_KEY_HINT,
+                  onClick: function () { window.open(NVIDIA_KEY_URL, '_blank', 'noopener,noreferrer'); },
+                  style: {
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                    fontSize: '11px',
+                    opacity: 0.85,
+                    border: '1px dashed rgba(128,128,128,0.6)',
+                    borderRadius: '4px',
+                    padding: '1px 6px',
+                    background: 'transparent',
+                    color: 'inherit',
+                    cursor: 'pointer',
+                  },
+                },
+                  '未配置',
+                  h('span', {
+                    style: {
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      width: '13px', height: '13px', borderRadius: '50%',
+                      border: '1px solid currentColor', fontSize: '9px', lineHeight: '1', fontWeight: 700,
+                    },
+                  }, '?')
+                )) : null,
             keyStatus && keyStatus.unavailable ? h('span', { style: { fontSize: '11px', color: '#b8860b' } }, '（凭据服务不可用）') : null,
           ),
           h('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap' } },

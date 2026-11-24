@@ -35,7 +35,7 @@ git clone https://github.com/windxxf/dsh-nvidia-models-panel.git
 ## 使用
 
 1. 打开侧边栏「Nvidia 模型」面板
-2. 粘贴 [NVIDIA API Key](https://build.nvidia.com/) 并保存（只需一次，保存在本机）
+2. 粘贴 NVIDIA API Key 并保存（只需一次，保存在本机）。还没有 Key？API Key 卡片上的「未配置 ?」徽标：鼠标悬停显示完整注册步骤（登录 build.nvidia.com → Settings → API Keys → Generate API Key，务必勾选 **Public API Endpoints** 权限 → 复制 `nvapi-` 开头的 Key），点击徽标直接打开官方申请页 [build.nvidia.com/settings/api-keys](https://build.nvidia.com/settings/api-keys)
 3. 点击「检测」获取可用模型列表 → 「验证」逐个试调用
 4. 点击「一键配置」，试调用通过的模型即写入 nvidia 供应商目录，可在对话模型选择器中直接选用
 
