@@ -1001,7 +1001,6 @@ window.__ModuleLoader__.load({
                 '已配置' + (keyStatus.source ? '（' + keyStatus.source + '）' : ''))
               : h('button', {
                   type: 'button',
-                  title: NVIDIA_KEY_HINT,
                   onMouseEnter: function () { setKeyTipOpen(true); },
                   onMouseLeave: function () { setKeyTipOpen(false); },
                   onFocus: function () { setKeyTipOpen(true); },
@@ -1061,7 +1060,12 @@ window.__ModuleLoader__.load({
                 minWidth: '200px',
                 padding: '7px 12px',
                 fontSize: '13px',
-                border: '1px solid rgba(128,128,128,0.4)',
+                // 四边显式同宽 + 去 outline：避免内嵌 webview 下 host focus 样式/亚像素渲染让上、左边框显得更粗
+                borderTop: '1px solid rgba(128,128,128,0.4)',
+                borderLeft: '1px solid rgba(128,128,128,0.4)',
+                borderRight: '1px solid rgba(128,128,128,0.4)',
+                borderBottom: '1px solid rgba(128,128,128,0.4)',
+                outline: 'none',
                 borderRadius: '6px',
                 background: 'transparent',
                 color: 'inherit',
