@@ -592,6 +592,8 @@ window.__ModuleLoader__.load({
       // ---- 新版本检测 ----
       const [updateInfo, setUpdateInfo] = useState(null);
       const [updateBusy, setUpdateBusy] = useState(false);
+      // 「未配置」徽标的自定义悬停步骤浮层（原生 title 在 Tauri webview 里常不渲染）
+      const [keyTipOpen, setKeyTipOpen] = useState(false);
 
       const refreshUsage = useCallback(async function () {
         try {
@@ -992,7 +994,7 @@ window.__ModuleLoader__.load({
             gap: '8px',
           },
         },
-          h('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' } },
+          h('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', position: 'relative' } },
             h('span', { style: { fontSize: '13px', fontWeight: 600 } }, 'NVIDIA API Key'),
             keyStatus ? (keyStatus.configured
               ? h('span', { style: { fontSize: '11px', color: '#2e7d32', border: '1px solid #2e7d32', borderRadius: '4px', padding: '1px 6px', background: 'rgba(46,125,50,0.10)' } },
@@ -1000,6 +1002,10 @@ window.__ModuleLoader__.load({
               : h('button', {
                   type: 'button',
                   title: NVIDIA_KEY_HINT,
+                  onMouseEnter: function () { setKeyTipOpen(true); },
+                  onMouseLeave: function () { setKeyTipOpen(false); },
+                  onFocus: function () { setKeyTipOpen(true); },
+                  onBlur: function () { setKeyTipOpen(false); },
                   onClick: function () { window.open(NVIDIA_KEY_URL, '_blank', 'noopener,noreferrer'); },
                   style: {
                     display: 'inline-flex',
@@ -1027,6 +1033,21 @@ window.__ModuleLoader__.load({
                   }, '?')
                 )) : null,
             keyStatus && keyStatus.unavailable ? h('span', { style: { fontSize: '11px', color: '#b8860b' } }, '（凭据服务不可用）') : null,
+            // 自定义悬停浮层：原生 title 在 Tauri webview 里常不渲染，这里用 DOM 浮层显示注册步骤。
+            keyTipOpen && keyStatus && !keyStatus.configured
+              ? h('div', {
+                  style: {
+                    position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 50,
+                    width: '300px', maxWidth: 'calc(100vw - 48px)',
+                    padding: '10px 12px', borderRadius: '6px',
+                    background: 'var(--dsh-surface, #242529)',
+                    border: '1px solid rgba(143,206,0,0.45)',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.45)',
+                    color: 'inherit', fontSize: '11px', lineHeight: '1.7',
+                    whiteSpace: 'pre-wrap', pointerEvents: 'none',
+                  },
+                }, NVIDIA_KEY_HINT)
+              : null,
           ),
           h('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap' } },
             h('input', {
