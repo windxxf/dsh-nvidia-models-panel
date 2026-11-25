@@ -9,15 +9,35 @@ window.__ModuleLoader__.load({
     // 表现为「上/左边框比右/下粗」。仅靠 <style> 里的 !important 可能被宿主更具体的
     // !important 规则压过；这里用 callback ref 直接在真实 DOM 元素上写「内联 !important」，
     // 内联 !important 的优先级高于任何作者样式表（含 !important），无法被覆盖。
-    function nmKeyInputRef(el) {
+    // 宿主会在挂载后用内联 !important 给 input 强制 border-*-width:4px，
+    // 任何写在 input 上的可见边框都会被它顶掉。根治办法：input 自己的边框
+    // 设为「透明」（宽度随宿主怎么改都看不见），可见边框改由外层 wrapper div
+    // 绘制——宿主的 input 规则无法命中 div。
+    function nmApplyImportant(el, props) {
       if (!el || !el.style || typeof el.style.setProperty !== 'function') return;
-      // 注意：绝不能给这个 input 传 React 的 style prop —— React 会用普通赋值
-      // （无 !important）重设 style，从而抹掉这里写的内联 !important，让宿主的
-      // border-top-width/border-left-width:4px !important 重新生效。所以所有样式
-      // （含布局）都在这里一次性用 !important 写入，React 侧 style prop 保持缺省。
-      var props = {
-        'flex': '1 1 auto',
+      for (var k in props) {
+        try { el.style.setProperty(k, props[k], 'important'); } catch (e) {}
+      }
+    }
+    function nmKeyWrapRef(el) {
+      nmApplyImportant(el, {
+        'flex': '1 1 200px',
         'min-width': '200px',
+        'display': 'flex',
+        'align-items': 'center',
+        'box-sizing': 'border-box',
+        'background': 'transparent',
+        'border-top': '1px solid rgba(128,128,128,0.4)',
+        'border-left': '1px solid rgba(128,128,128,0.4)',
+        'border-right': '1px solid rgba(128,128,128,0.4)',
+        'border-bottom': '1px solid rgba(128,128,128,0.4)',
+        'border-radius': '6px',
+        'overflow': 'hidden',
+      });
+    }
+    function nmKeyInputRef(el) {
+      nmApplyImportant(el, {
+        'display': 'block',
         'width': '100%',
         'padding': '7px 12px',
         'font-size': '13px',
@@ -25,19 +45,15 @@ window.__ModuleLoader__.load({
         'outline': 'none',
         '-webkit-appearance': 'none',
         'appearance': 'none',
-        'border-top': '1px solid rgba(128,128,128,0.4)',
-        'border-left': '1px solid rgba(128,128,128,0.4)',
-        'border-right': '1px solid rgba(128,128,128,0.4)',
-        'border-bottom': '1px solid rgba(128,128,128,0.4)',
+        'border-style': 'none',
+        'border-color': 'transparent',
+        'border-width': '0',
         'border-radius': '6px',
         'background': 'transparent',
         'color': 'inherit',
         'font-family': 'inherit',
         'box-sizing': 'border-box',
-      };
-      for (var k in props) {
-        try { el.style.setProperty(k, props[k], 'important'); } catch (e) {}
-      }
+      });
     }
 
     const BUILTIN_MODELS = [
@@ -1096,15 +1112,17 @@ window.__ModuleLoader__.load({
               : null,
           ),
           h('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap' } },
-            h('input', {
-              type: 'password',
-              className: 'nm-key-input',
-              ref: nmKeyInputRef,
-              value: keyInput,
-              onChange: function (e) { setKeyInput(e.target.value); },
-              placeholder: '输入 nvapi-… Key（密文显示，不回显）',
-              autoComplete: 'off',
-            }),
+            h('div', { ref: nmKeyWrapRef },
+              h('input', {
+                type: 'password',
+                className: 'nm-key-input',
+                ref: nmKeyInputRef,
+                value: keyInput,
+                onChange: function (e) { setKeyInput(e.target.value); },
+                placeholder: '输入 nvapi-… Key（密文显示，不回显）',
+                autoComplete: 'off',
+              })
+            ),
             h('button', {
               onClick: saveKey,
               disabled: keyBusy || !keyInput.trim(),
