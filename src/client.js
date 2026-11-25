@@ -51,21 +51,15 @@ window.__ModuleLoader__.load({
       'box-sizing': 'border-box',
       'background': 'transparent',
       'box-shadow': 'none',
-      'outline': 'none',
       '-webkit-appearance': 'none',
       'appearance': 'none',
-      'border-top-width': '1px',
-      'border-left-width': '1px',
-      'border-right-width': '1px',
-      'border-bottom-width': '1px',
-      'border-top-style': 'solid',
-      'border-left-style': 'solid',
-      'border-right-style': 'solid',
-      'border-bottom-style': 'solid',
-      'border-top-color': 'rgba(128,128,128,0.4)',
-      'border-left-color': 'rgba(128,128,128,0.4)',
-      'border-right-color': 'rgba(128,128,128,0.4)',
-      'border-bottom-color': 'rgba(128,128,128,0.4)',
+      // 可见线条改用 outline 画：宿主就算把 border-*-width 强改成 4px 也影响不到 outline。
+      // border 本身彻底 none/transparent，宽度随宿主怎么改都渲染不出来。
+      'border-style': 'none',
+      'border-color': 'transparent',
+      'border-width': '0',
+      'outline': '1px solid rgba(128,128,128,0.4)',
+      'outline-offset': '-1px',
       'border-radius': '6px',
       'overflow': 'hidden',
     };
@@ -689,6 +683,37 @@ window.__ModuleLoader__.load({
       const [updateBusy, setUpdateBusy] = useState(false);
       // 「未配置」徽标的自定义悬停步骤浮层（原生 title 在 Tauri webview 里常不渲染）
       const [keyTipOpen, setKeyTipOpen] = useState(false);
+      // 诊断：读取输入框在真实宿主里的计算样式（边框/阴影/轮廓），帮助定位「上/左粗边框」
+      const [diagInfo, setDiagInfo] = useState('');
+      const runDiag = useCallback(function () {
+        var parts = [];
+        function dump(label, el) {
+          if (!el || typeof window === 'undefined' || !window.getComputedStyle) {
+            parts.push(label + ': (no element)'); return;
+          }
+          try {
+            var cs = window.getComputedStyle(el);
+            parts.push(label + ':');
+            parts.push('  border-width: ' + cs.borderTopWidth + '/' + cs.borderRightWidth + '/' + cs.borderBottomWidth + '/' + cs.borderLeftWidth);
+            parts.push('  border-style: ' + cs.borderTopStyle + '/' + cs.borderRightStyle + '/' + cs.borderBottomStyle + '/' + cs.borderLeftStyle);
+            parts.push('  border-color: ' + cs.borderTopColor + '/' + cs.borderLeftColor);
+            parts.push('  box-shadow: ' + cs.boxShadow);
+            parts.push('  outline: ' + cs.outlineWidth + ' ' + cs.outlineStyle + ' ' + cs.outlineColor + ' offset ' + cs.outlineOffset);
+            parts.push('  inline: ' + (el.getAttribute('style') || '(none)'));
+          } catch (e) { parts.push(label + ': ERROR ' + String(e)); }
+        }
+        if (!nmWrapEl || !nmInputEl) {
+          // 兜底：按 class 在真实 DOM 里找
+          try {
+            var root = typeof document !== 'undefined' ? document : null;
+            nmWrapEl = root ? root.querySelector('.nm-key-wrap') : null;
+            nmInputEl = root ? root.querySelector('input.nm-key-input') : null;
+          } catch (e) {}
+        }
+        dump('WRAPPER', nmWrapEl);
+        dump('INPUT', nmInputEl);
+        setDiagInfo(parts.join('\n'));
+      }, []);
 
       const refreshUsage = useCallback(async function () {
         try {
@@ -1053,6 +1078,27 @@ window.__ModuleLoader__.load({
           ),
           h('div', { style: { display: 'flex', alignItems: 'center', gap: '6px' } },
             h('button', {
+              onClick: runDiag,
+              'aria-label': '边框诊断',
+              title: '诊断输入框边框样式',
+              style: {
+                background: 'transparent',
+                border: '1px solid rgba(128,128,128,0.4)',
+                borderRadius: '50%',
+                width: '20px',
+                height: '20px',
+                cursor: 'pointer',
+                color: 'inherit',
+                fontSize: '11px',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: 0.8,
+                padding: 0,
+              },
+            }, '⌗'),
+            h('button', {
               onClick: function () { setHelpOpen(true); },
               'aria-label': '使用说明',
               title: '使用说明',
@@ -1156,7 +1202,7 @@ window.__ModuleLoader__.load({
               : null,
           ),
           h('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap' } },
-            h('div', { ref: nmKeyWrapRef },
+            h('div', { ref: nmKeyWrapRef, className: 'nm-key-wrap' },
               h('input', {
                 type: 'password',
                 className: 'nm-key-input',
@@ -1201,6 +1247,20 @@ window.__ModuleLoader__.load({
           noKey ? h('p', { style: { margin: 0, fontSize: '12px', lineHeight: 1.5, color: '#b8860b' } },
             '⚠ 未配置 Key：检测、试调用与「模型组」都不可用，请先在上方保存 Key。') : null,
           keyMsg ? h('p', { style: { margin: 0, fontSize: '12px', lineHeight: 1.5 } }, keyMsg) : null,
+          diagInfo ? h('pre', {
+            style: {
+              margin: '8px 0 0',
+              padding: '8px',
+              fontSize: '11px',
+              lineHeight: 1.5,
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-all',
+              background: 'rgba(0,0,0,0.3)',
+              border: '1px solid rgba(128,128,128,0.3)',
+              borderRadius: '6px',
+              userSelect: 'text',
+            },
+          }, diagInfo) : null,
         ),
         noKey ? noKeyWarning(keyHint) : null,
         tabBar,
