@@ -879,6 +879,18 @@ window.__ModuleLoader__.load({
           position: 'relative',
         },
       },
+        // 宿主样式会给 input 叠加带正偏移的 inset box-shadow（只在上/左露出），
+        // 表现为「上/左边框比右/下粗」。这里用只作用于本输入框唯一类名的
+        // 作用域样式把 box-shadow/outline/appearance 清零——不影响面板其它元素。
+        h('style', { key: 'nm-key-input-reset' },
+          '.nvidia-models-panel input.nm-key-input,' +
+          '.nvidia-models-panel input.nm-key-input:focus,' +
+          '.nvidia-models-panel input.nm-key-input:focus-visible,' +
+          '.nvidia-models-panel input.nm-key-input:hover{' +
+          'box-shadow:none!important;outline:none!important;' +
+          '-webkit-appearance:none!important;appearance:none!important;' +
+          'border:1px solid rgba(128,128,128,0.4)!important;border-radius:6px!important;}'),
+
         h('div', {
           key: 'header',
           style: {
@@ -1051,6 +1063,7 @@ window.__ModuleLoader__.load({
           h('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap' } },
             h('input', {
               type: 'password',
+              className: 'nm-key-input',
               value: keyInput,
               onChange: function (e) { setKeyInput(e.target.value); },
               placeholder: '输入 nvapi-… Key（密文显示，不回显）',
