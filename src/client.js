@@ -879,20 +879,6 @@ window.__ModuleLoader__.load({
           position: 'relative',
         },
       },
-        // 面板内强制抑制宿主焦点环：宿主 webview 可能在任意元素上画 focus-visible 环，
-        // 这里用 scoped style 强制抑制，仅作用于本面板。
-        h('style', {}, [
-          '.nvidia-models-panel *,',
-          '.nvidia-models-panel *:focus,',
-          '.nvidia-models-panel *:focus-visible{',
-          'outline:none!important;',
-          'outline-offset:0!important;',
-          'box-shadow:none!important;',
-          '-webkit-appearance:none!important;',
-          'appearance:none!important;',
-          'border-color:inherit!important;',
-          '}',
-        ].join('')),
         h('div', {
           key: 'header',
           style: {
@@ -1063,46 +1049,24 @@ window.__ModuleLoader__.load({
               : null,
           ),
           h('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap' } },
-            // 结构性修复：把边框画在外层 wrapper 上，input 自己无边框；
-            // wrapper 用 pointer-events:none 让宿主不在它上面画焦点环，overflow:hidden 裁掉残留；
-            // 输入框本身彻底去边框/外观，防止宿主在它身上画焦点环。
-            h('div', {
+            h('input', {
+              type: 'password',
+              value: keyInput,
+              onChange: function (e) { setKeyInput(e.target.value); },
+              placeholder: '输入 nvapi-… Key（密文显示，不回显）',
+              autoComplete: 'off',
               style: {
-                flex: '1 1 200px',
+                flex: 1,
                 minWidth: '200px',
-                display: 'flex',
-                alignItems: 'center',
-                overflow: 'hidden',
-                pointerEvents: 'none',
+                padding: '7px 12px',
+                fontSize: '13px',
                 border: '1px solid rgba(128,128,128,0.4)',
                 borderRadius: '6px',
-                boxSizing: 'border-box',
                 background: 'transparent',
+                color: 'inherit',
+                boxSizing: 'border-box',
               },
-            },
-              h('input', {
-                type: 'password',
-                value: keyInput,
-                onChange: function (e) { setKeyInput(e.target.value); },
-                placeholder: '输入 nvapi-… Key（密文显示，不回显）',
-                autoComplete: 'off',
-                style: {
-                  flex: '1 1 auto',
-                  minWidth: 0,
-                  width: '100%',
-                  padding: '7px 12px',
-                  fontSize: '13px',
-                  border: 'none',
-                  outline: 'none',
-                  boxShadow: 'none',
-                  WebkitAppearance: 'none',
-                  appearance: 'none',
-                  background: 'transparent',
-                  color: 'inherit',
-                  boxSizing: 'border-box',
-                },
-              }),
-            ),
+            }),
             h('button', {
               onClick: saveKey,
               disabled: keyBusy || !keyInput.trim(),
