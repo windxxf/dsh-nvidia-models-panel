@@ -11,14 +11,28 @@ window.__ModuleLoader__.load({
     // 内联 !important 的优先级高于任何作者样式表（含 !important），无法被覆盖。
     function nmKeyInputRef(el) {
       if (!el || !el.style || typeof el.style.setProperty !== 'function') return;
+      // 注意：绝不能给这个 input 传 React 的 style prop —— React 会用普通赋值
+      // （无 !important）重设 style，从而抹掉这里写的内联 !important，让宿主的
+      // border-top-width/border-left-width:4px !important 重新生效。所以所有样式
+      // （含布局）都在这里一次性用 !important 写入，React 侧 style prop 保持缺省。
       var props = {
+        'flex': '1 1 auto',
+        'min-width': '200px',
+        'width': '100%',
+        'padding': '7px 12px',
+        'font-size': '13px',
         'box-shadow': 'none',
         'outline': 'none',
         '-webkit-appearance': 'none',
         'appearance': 'none',
-        'border': '1px solid rgba(128,128,128,0.4)',
+        'border-top': '1px solid rgba(128,128,128,0.4)',
+        'border-left': '1px solid rgba(128,128,128,0.4)',
+        'border-right': '1px solid rgba(128,128,128,0.4)',
+        'border-bottom': '1px solid rgba(128,128,128,0.4)',
         'border-radius': '6px',
         'background': 'transparent',
+        'color': 'inherit',
+        'font-family': 'inherit',
         'box-sizing': 'border-box',
       };
       for (var k in props) {
@@ -1090,17 +1104,6 @@ window.__ModuleLoader__.load({
               onChange: function (e) { setKeyInput(e.target.value); },
               placeholder: '输入 nvapi-… Key（密文显示，不回显）',
               autoComplete: 'off',
-              style: {
-                flex: 1,
-                minWidth: '200px',
-                padding: '7px 12px',
-                fontSize: '13px',
-                border: '1px solid rgba(128,128,128,0.4)',
-                borderRadius: '6px',
-                background: 'transparent',
-                color: 'inherit',
-                boxSizing: 'border-box',
-              },
             }),
             h('button', {
               onClick: saveKey,
