@@ -687,20 +687,46 @@ window.__ModuleLoader__.load({
       const [diagInfo, setDiagInfo] = useState('');
       const runDiag = useCallback(function () {
         var parts = [];
+        function rect(r) {
+          if (!r) return '(no rect)';
+          return 'rect(t=' + Math.round(r.top) + ' l=' + Math.round(r.left) +
+            ' r=' + Math.round(r.right) + ' b=' + Math.round(r.bottom) +
+            ' w=' + Math.round(r.width) + ' h=' + Math.round(r.height) + ')';
+        }
         function dump(label, el) {
           if (!el || typeof window === 'undefined' || !window.getComputedStyle) {
             parts.push(label + ': (no element)'); return;
           }
           try {
             var cs = window.getComputedStyle(el);
-            parts.push(label + ':');
+            parts.push(label + ' <' + el.tagName.toLowerCase() +
+              (el.id ? '#' + el.id : '') +
+              (el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/).join('.') : '') + '>');
+            parts.push('  ' + rect(el.getBoundingClientRect()));
             parts.push('  border-width: ' + cs.borderTopWidth + '/' + cs.borderRightWidth + '/' + cs.borderBottomWidth + '/' + cs.borderLeftWidth);
             parts.push('  border-style: ' + cs.borderTopStyle + '/' + cs.borderRightStyle + '/' + cs.borderBottomStyle + '/' + cs.borderLeftStyle);
             parts.push('  border-color: ' + cs.borderTopColor + '/' + cs.borderLeftColor);
             parts.push('  box-shadow: ' + cs.boxShadow);
             parts.push('  outline: ' + cs.outlineWidth + ' ' + cs.outlineStyle + ' ' + cs.outlineColor + ' offset ' + cs.outlineOffset);
+            parts.push('  position: ' + cs.position + ' z=' + cs.zIndex + ' overflow=' + cs.overflow);
             parts.push('  inline: ' + (el.getAttribute('style') || '(none)'));
           } catch (e) { parts.push(label + ': ERROR ' + String(e)); }
+        }
+        function dumpPseudo(label, el, which) {
+          if (!el || typeof window === 'undefined' || !window.getComputedStyle) return;
+          try {
+            var cs = window.getComputedStyle(el, which);
+            var content = cs.content || 'none';
+            // 只打印「实际存在」的伪元素（有 content 且非 none，或 display 非 none）
+            if ((content === 'none' || content === 'normal') && cs.display === 'none') return;
+            parts.push('  ' + label + which + ': content=' + content +
+              ' display=' + cs.display + ' position=' + cs.position + ' z=' + cs.zIndex);
+            parts.push('    inset(t/r/b/l)=' + cs.top + '/' + cs.right + '/' + cs.bottom + '/' + cs.left +
+              ' size=' + cs.width + 'x' + cs.height);
+            parts.push('    border-width=' + cs.borderTopWidth + '/' + cs.borderRightWidth + '/' + cs.borderBottomWidth + '/' + cs.borderLeftWidth +
+              ' style=' + cs.borderTopStyle + ' color=' + cs.borderTopColor);
+            parts.push('    box-shadow=' + cs.boxShadow + ' background=' + cs.backgroundColor);
+          } catch (e) { parts.push('  ' + label + which + ': ERROR ' + String(e)); }
         }
         if (!nmWrapEl || !nmInputEl) {
           // 兜底：按 class 在真实 DOM 里找
@@ -710,8 +736,22 @@ window.__ModuleLoader__.load({
             nmInputEl = root ? root.querySelector('input.nm-key-input') : null;
           } catch (e) {}
         }
-        dump('WRAPPER', nmWrapEl);
         dump('INPUT', nmInputEl);
+        dump('WRAPPER', nmWrapEl);
+        // 父元素链：往上最多 6 层，逐层打印边框/阴影/位置 + 伪元素
+        var node = nmWrapEl;
+        for (var i = 1; i <= 6 && node && node.parentElement; i++) {
+          var p = node.parentElement;
+          dump('PARENT[' + i + ']', p);
+          dumpPseudo('PARENT[' + i + ']', p, '::before');
+          dumpPseudo('PARENT[' + i + ']', p, '::after');
+          node = p;
+        }
+        // input 与 wrapper 自身的伪元素也查一遍
+        dumpPseudo('INPUT', nmInputEl, '::before');
+        dumpPseudo('INPUT', nmInputEl, '::after');
+        dumpPseudo('WRAPPER', nmWrapEl, '::before');
+        dumpPseudo('WRAPPER', nmWrapEl, '::after');
         setDiagInfo(parts.join('\n'));
       }, []);
 
