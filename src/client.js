@@ -879,6 +879,20 @@ window.__ModuleLoader__.load({
           position: 'relative',
         },
       },
+        // 面板内强制抑制宿主焦点环：宿主 webview 可能在任意元素上画 focus-visible 环，
+        // 这里用 scoped style 强制抑制，仅作用于本面板。
+        h('style', {}, [
+          '.nvidia-models-panel *,',
+          '.nvidia-models-panel *:focus,',
+          '.nvidia-models-panel *:focus-visible{',
+          'outline:none!important;',
+          'outline-offset:0!important;',
+          'box-shadow:none!important;',
+          '-webkit-appearance:none!important;',
+          'appearance:none!important;',
+          'border-color:inherit!important;',
+          '}',
+        ].join('')),
         h('div', {
           key: 'header',
           style: {
@@ -1050,7 +1064,8 @@ window.__ModuleLoader__.load({
           ),
           h('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap' } },
             // 结构性修复：把边框画在外层 wrapper 上，input 自己无边框；
-            // wrapper 用 overflow:hidden 裁掉宿主 webview 给 input 画的焦点装饰（那条只露上/左边的「┌」）。
+            // wrapper 用 pointer-events:none 让宿主不在它上面画焦点环，overflow:hidden 裁掉残留；
+            // 输入框本身彻底去边框/外观，防止宿主在它身上画焦点环。
             h('div', {
               style: {
                 flex: '1 1 200px',
@@ -1058,6 +1073,7 @@ window.__ModuleLoader__.load({
                 display: 'flex',
                 alignItems: 'center',
                 overflow: 'hidden',
+                pointerEvents: 'none',
                 border: '1px solid rgba(128,128,128,0.4)',
                 borderRadius: '6px',
                 boxSizing: 'border-box',
