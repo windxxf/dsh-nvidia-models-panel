@@ -5,6 +5,27 @@ window.__ModuleLoader__.load({
     const { useState, useCallback, useRef, useEffect } = React;
     const h = React.createElement;
 
+    // 宿主的某些样式会给 input 叠加带正偏移的 inset box-shadow（只在上/左露出），
+    // 表现为「上/左边框比右/下粗」。仅靠 <style> 里的 !important 可能被宿主更具体的
+    // !important 规则压过；这里用 callback ref 直接在真实 DOM 元素上写「内联 !important」，
+    // 内联 !important 的优先级高于任何作者样式表（含 !important），无法被覆盖。
+    function nmKeyInputRef(el) {
+      if (!el || !el.style || typeof el.style.setProperty !== 'function') return;
+      var props = {
+        'box-shadow': 'none',
+        'outline': 'none',
+        '-webkit-appearance': 'none',
+        'appearance': 'none',
+        'border': '1px solid rgba(128,128,128,0.4)',
+        'border-radius': '6px',
+        'background': 'transparent',
+        'box-sizing': 'border-box',
+      };
+      for (var k in props) {
+        try { el.style.setProperty(k, props[k], 'important'); } catch (e) {}
+      }
+    }
+
     const BUILTIN_MODELS = [
       { id: 'nvidia/llama-3.1-nemotron-70b-instruct', name: 'Llama 3.1 Nemotron 70B', description: 'NVIDIA 旗舰推理模型，擅长复杂推理、编码与数学', contextLength: 128000 },
       { id: 'nvidia/nemotron-3-ultra-550b-a55b', name: 'Nemotron 3 Ultra 550B', description: '超大参数模型，推理与编码能力极强', contextLength: 1000000 },
@@ -1064,6 +1085,7 @@ window.__ModuleLoader__.load({
             h('input', {
               type: 'password',
               className: 'nm-key-input',
+              ref: nmKeyInputRef,
               value: keyInput,
               onChange: function (e) { setKeyInput(e.target.value); },
               placeholder: '输入 nvapi-… Key（密文显示，不回显）',
