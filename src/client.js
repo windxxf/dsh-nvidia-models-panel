@@ -15,45 +15,89 @@ window.__ModuleLoader__.load({
     // 绘制——宿主的 input 规则无法命中 div。
     function nmApplyImportant(el, props) {
       if (!el || !el.style || typeof el.style.setProperty !== 'function') return;
+      el.__nmApplying = true;
       for (var k in props) {
         try { el.style.setProperty(k, props[k], 'important'); } catch (e) {}
       }
+      el.__nmApplying = false;
     }
+    // 宿主可能在挂载后（含后续重渲染）用内联 !important 覆盖我们的样式。
+    // 用一个 MutationObserver 盯住 style 属性，一旦被改动就把我们的 !important 重新写回去。
+    function nmWatchStyle(el, props) {
+      if (!el || typeof MutationObserver === 'undefined') return;
+      try {
+        var mo = new MutationObserver(function () {
+          if (el.__nmApplying) return;
+          // 只在确实被改动时才重写，避免「重写本身触发 observer」的死循环。
+          var need = false;
+          for (var k in props) {
+            try {
+              if (el.style.getPropertyValue(k) !== props[k] || el.style.getPropertyPriority(k) !== 'important') {
+                need = true; break;
+              }
+            } catch (e) {}
+          }
+          if (need) nmApplyImportant(el, props);
+        });
+        mo.observe(el, { attributes: true, attributeFilter: ['style'] });
+      } catch (e) {}
+    }
+    var nmWrapEl = null, nmInputEl = null;
+    var NM_WRAP_PROPS = {
+      'flex': '1 1 200px',
+      'min-width': '200px',
+      'display': 'flex',
+      'align-items': 'center',
+      'box-sizing': 'border-box',
+      'background': 'transparent',
+      'box-shadow': 'none',
+      'outline': 'none',
+      '-webkit-appearance': 'none',
+      'appearance': 'none',
+      'border-top-width': '1px',
+      'border-left-width': '1px',
+      'border-right-width': '1px',
+      'border-bottom-width': '1px',
+      'border-top-style': 'solid',
+      'border-left-style': 'solid',
+      'border-right-style': 'solid',
+      'border-bottom-style': 'solid',
+      'border-top-color': 'rgba(128,128,128,0.4)',
+      'border-left-color': 'rgba(128,128,128,0.4)',
+      'border-right-color': 'rgba(128,128,128,0.4)',
+      'border-bottom-color': 'rgba(128,128,128,0.4)',
+      'border-radius': '6px',
+      'overflow': 'hidden',
+    };
+    var NM_INPUT_PROPS = {
+      'display': 'block',
+      'width': '100%',
+      'padding': '7px 12px',
+      'font-size': '13px',
+      'box-shadow': 'none',
+      'outline': 'none',
+      '-webkit-appearance': 'none',
+      'appearance': 'none',
+      'border-style': 'none',
+      'border-color': 'transparent',
+      'border-width': '0',
+      'border-radius': '6px',
+      'background': 'transparent',
+      'color': 'inherit',
+      'font-family': 'inherit',
+      'box-sizing': 'border-box',
+    };
     function nmKeyWrapRef(el) {
-      nmApplyImportant(el, {
-        'flex': '1 1 200px',
-        'min-width': '200px',
-        'display': 'flex',
-        'align-items': 'center',
-        'box-sizing': 'border-box',
-        'background': 'transparent',
-        'border-top': '1px solid rgba(128,128,128,0.4)',
-        'border-left': '1px solid rgba(128,128,128,0.4)',
-        'border-right': '1px solid rgba(128,128,128,0.4)',
-        'border-bottom': '1px solid rgba(128,128,128,0.4)',
-        'border-radius': '6px',
-        'overflow': 'hidden',
-      });
+      nmWrapEl = el || null;
+      if (!el) return;
+      nmApplyImportant(el, NM_WRAP_PROPS);
+      nmWatchStyle(el, NM_WRAP_PROPS);
     }
     function nmKeyInputRef(el) {
-      nmApplyImportant(el, {
-        'display': 'block',
-        'width': '100%',
-        'padding': '7px 12px',
-        'font-size': '13px',
-        'box-shadow': 'none',
-        'outline': 'none',
-        '-webkit-appearance': 'none',
-        'appearance': 'none',
-        'border-style': 'none',
-        'border-color': 'transparent',
-        'border-width': '0',
-        'border-radius': '6px',
-        'background': 'transparent',
-        'color': 'inherit',
-        'font-family': 'inherit',
-        'box-sizing': 'border-box',
-      });
+      nmInputEl = el || null;
+      if (!el) return;
+      nmApplyImportant(el, NM_INPUT_PROPS);
+      nmWatchStyle(el, NM_INPUT_PROPS);
     }
 
     const BUILTIN_MODELS = [
