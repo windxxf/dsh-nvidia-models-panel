@@ -682,105 +682,6 @@ window.__ModuleLoader__.load({
       const [updateBusy, setUpdateBusy] = useState(false);
       // 「未配置」徽标的自定义悬停步骤浮层（原生 title 在 Tauri webview 里常不渲染）
       const [keyTipOpen, setKeyTipOpen] = useState(false);
-      // 诊断：读取输入框在真实宿主里的计算样式（边框/阴影/轮廓），帮助定位「上/左粗边框」
-      const [diagInfo, setDiagInfo] = useState('');
-      const runDiag = useCallback(function () {
-        var parts = [];
-        function rect(r) {
-          if (!r) return '(no rect)';
-          return 'rect(t=' + Math.round(r.top) + ' l=' + Math.round(r.left) +
-            ' r=' + Math.round(r.right) + ' b=' + Math.round(r.bottom) +
-            ' w=' + Math.round(r.width) + ' h=' + Math.round(r.height) + ')';
-        }
-        function dump(label, el) {
-          if (!el || typeof window === 'undefined' || !window.getComputedStyle) {
-            parts.push(label + ': (no element)'); return;
-          }
-          try {
-            var cs = window.getComputedStyle(el);
-            parts.push(label + ' <' + el.tagName.toLowerCase() +
-              (el.id ? '#' + el.id : '') +
-              (el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/).join('.') : '') + '>');
-            parts.push('  ' + rect(el.getBoundingClientRect()));
-            parts.push('  border-width: ' + cs.borderTopWidth + '/' + cs.borderRightWidth + '/' + cs.borderBottomWidth + '/' + cs.borderLeftWidth);
-            parts.push('  border-style: ' + cs.borderTopStyle + '/' + cs.borderRightStyle + '/' + cs.borderBottomStyle + '/' + cs.borderLeftStyle);
-            parts.push('  border-color: ' + cs.borderTopColor + '/' + cs.borderLeftColor);
-            parts.push('  box-shadow: ' + cs.boxShadow);
-            parts.push('  outline: ' + cs.outlineWidth + ' ' + cs.outlineStyle + ' ' + cs.outlineColor + ' offset ' + cs.outlineOffset);
-            parts.push('  position: ' + cs.position + ' z=' + cs.zIndex + ' overflow=' + cs.overflow);
-            parts.push('  inline: ' + (el.getAttribute('style') || '(none)'));
-          } catch (e) { parts.push(label + ': ERROR ' + String(e)); }
-        }
-        function dumpPseudo(label, el, which) {
-          if (!el || typeof window === 'undefined' || !window.getComputedStyle) return;
-          try {
-            var cs = window.getComputedStyle(el, which);
-            var content = cs.content || 'none';
-            // 只打印「实际存在」的伪元素（有 content 且非 none，或 display 非 none）
-            if ((content === 'none' || content === 'normal') && cs.display === 'none') return;
-            parts.push('  ' + label + which + ': content=' + content +
-              ' display=' + cs.display + ' position=' + cs.position + ' z=' + cs.zIndex);
-            parts.push('    inset(t/r/b/l)=' + cs.top + '/' + cs.right + '/' + cs.bottom + '/' + cs.left +
-              ' size=' + cs.width + 'x' + cs.height);
-            parts.push('    border-width=' + cs.borderTopWidth + '/' + cs.borderRightWidth + '/' + cs.borderBottomWidth + '/' + cs.borderLeftWidth +
-              ' style=' + cs.borderTopStyle + ' color=' + cs.borderTopColor);
-            parts.push('    box-shadow=' + cs.boxShadow + ' background=' + cs.backgroundColor);
-          } catch (e) { parts.push('  ' + label + which + ': ERROR ' + String(e)); }
-        }
-        if (!nmWrapEl || !nmInputEl) {
-          // 兜底：按 class 在真实 DOM 里找
-          try {
-            var root = typeof document !== 'undefined' ? document : null;
-            nmWrapEl = root ? root.querySelector('.nm-key-wrap') : null;
-            nmInputEl = root ? root.querySelector('input.nm-key-input') : null;
-          } catch (e) {}
-        }
-        dump('INPUT', nmInputEl);
-        dump('WRAPPER', nmWrapEl);
-        // 像素探针：在 wrapper 上边/左边中点处，看实际「盖在上面」的是哪些元素。
-        // 若这里有某个非 wrapper/input 的元素，就是它在画那条粗线。
-        try {
-          if (nmWrapEl && typeof document !== 'undefined' && document.elementsFromPoint) {
-            var wr = nmWrapEl.getBoundingClientRect();
-            var probes = {
-              'TOP edge': [Math.round(wr.left + wr.width / 2), Math.round(wr.top + 1)],
-              'LEFT edge': [Math.round(wr.left + 1), Math.round(wr.top + wr.height / 2)],
-              'RIGHT edge': [Math.round(wr.right - 1), Math.round(wr.top + wr.height / 2)],
-              'BOTTOM edge': [Math.round(wr.left + wr.width / 2), Math.round(wr.bottom - 1)],
-              'CENTER': [Math.round(wr.left + wr.width / 2), Math.round(wr.top + wr.height / 2)],
-            };
-            for (var pk in probes) {
-              var pt = probes[pk];
-              var els = document.elementsFromPoint(pt[0], pt[1]) || [];
-              var desc = els.slice(0, 5).map(function (e) {
-                var cls = (e.className && typeof e.className === 'string') ? '.' + e.className.trim().split(/\s+/).join('.') : '';
-                return e.tagName.toLowerCase() + cls;
-              }).join(' > ');
-              parts.push('PROBE ' + pk + ' (' + pt[0] + ',' + pt[1] + '): ' + desc);
-            }
-            // 同时数一数页面上有几个 .nm-key-wrap / input.nm-key-input（防重复挂载）
-            var wrapCount = document.querySelectorAll('.nm-key-wrap').length;
-            var inputCount = document.querySelectorAll('input.nm-key-input').length;
-            var panelCount = document.querySelectorAll('.nvidia-models-panel').length;
-            parts.push('COUNTS: wrap=' + wrapCount + ' input=' + inputCount + ' panel=' + panelCount);
-          }
-        } catch (e) { parts.push('PROBE ERROR ' + String(e)); }
-        // 父元素链：往上最多 6 层，逐层打印边框/阴影/位置 + 伪元素
-        var node = nmWrapEl;
-        for (var i = 1; i <= 6 && node && node.parentElement; i++) {
-          var p = node.parentElement;
-          dump('PARENT[' + i + ']', p);
-          dumpPseudo('PARENT[' + i + ']', p, '::before');
-          dumpPseudo('PARENT[' + i + ']', p, '::after');
-          node = p;
-        }
-        // input 与 wrapper 自身的伪元素也查一遍
-        dumpPseudo('INPUT', nmInputEl, '::before');
-        dumpPseudo('INPUT', nmInputEl, '::after');
-        dumpPseudo('WRAPPER', nmWrapEl, '::before');
-        dumpPseudo('WRAPPER', nmWrapEl, '::after');
-        setDiagInfo(parts.join('\n'));
-      }, []);
 
       const refreshUsage = useCallback(async function () {
         try {
@@ -1146,27 +1047,6 @@ window.__ModuleLoader__.load({
           ),
           h('div', { style: { display: 'flex', alignItems: 'center', gap: '6px' } },
             h('button', {
-              onClick: runDiag,
-              'aria-label': '边框诊断',
-              title: '诊断输入框边框样式',
-              style: {
-                background: 'transparent',
-                border: '1px solid rgba(128,128,128,0.4)',
-                borderRadius: '50%',
-                width: '20px',
-                height: '20px',
-                cursor: 'pointer',
-                color: 'inherit',
-                fontSize: '11px',
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                opacity: 0.8,
-                padding: 0,
-              },
-            }, '⌗'),
-            h('button', {
               onClick: function () { setHelpOpen(true); },
               'aria-label': '使用说明',
               title: '使用说明',
@@ -1315,20 +1195,6 @@ window.__ModuleLoader__.load({
           noKey ? h('p', { style: { margin: 0, fontSize: '12px', lineHeight: 1.5, color: '#b8860b' } },
             '⚠ 未配置 Key：检测、试调用与「模型组」都不可用，请先在上方保存 Key。') : null,
           keyMsg ? h('p', { style: { margin: 0, fontSize: '12px', lineHeight: 1.5 } }, keyMsg) : null,
-          diagInfo ? h('pre', {
-            style: {
-              margin: '8px 0 0',
-              padding: '8px',
-              fontSize: '11px',
-              lineHeight: 1.5,
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-all',
-              background: 'rgba(0,0,0,0.3)',
-              border: '1px solid rgba(128,128,128,0.3)',
-              borderRadius: '6px',
-              userSelect: 'text',
-            },
-          }, diagInfo) : null,
         ),
         noKey ? noKeyWarning(keyHint) : null,
         tabBar,
