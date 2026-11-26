@@ -49,17 +49,16 @@ window.__ModuleLoader__.load({
       'display': 'flex',
       'align-items': 'center',
       'box-sizing': 'border-box',
-      'background': 'transparent',
+      // 改用「背景填充」画可见区域：填充色是整块均匀的，物理上不可能出现
+      // 「上/左 4px、右/下 1px」这种描边不对称（边框/outline 才可能被亚像素/宿主搞歪）。
+      'background': 'rgba(128,128,128,0.12)',
       'box-shadow': 'none',
       '-webkit-appearance': 'none',
       'appearance': 'none',
-      // 可见线条改用 outline 画：宿主就算把 border-*-width 强改成 4px 也影响不到 outline。
-      // border 本身彻底 none/transparent，宽度随宿主怎么改都渲染不出来。
       'border-style': 'none',
       'border-color': 'transparent',
       'border-width': '0',
-      'outline': '1px solid rgba(128,128,128,0.4)',
-      'outline-offset': '-1px',
+      'outline': 'none',
       'border-radius': '6px',
       'overflow': 'hidden',
     };
@@ -738,6 +737,34 @@ window.__ModuleLoader__.load({
         }
         dump('INPUT', nmInputEl);
         dump('WRAPPER', nmWrapEl);
+        // 像素探针：在 wrapper 上边/左边中点处，看实际「盖在上面」的是哪些元素。
+        // 若这里有某个非 wrapper/input 的元素，就是它在画那条粗线。
+        try {
+          if (nmWrapEl && typeof document !== 'undefined' && document.elementsFromPoint) {
+            var wr = nmWrapEl.getBoundingClientRect();
+            var probes = {
+              'TOP edge': [Math.round(wr.left + wr.width / 2), Math.round(wr.top + 1)],
+              'LEFT edge': [Math.round(wr.left + 1), Math.round(wr.top + wr.height / 2)],
+              'RIGHT edge': [Math.round(wr.right - 1), Math.round(wr.top + wr.height / 2)],
+              'BOTTOM edge': [Math.round(wr.left + wr.width / 2), Math.round(wr.bottom - 1)],
+              'CENTER': [Math.round(wr.left + wr.width / 2), Math.round(wr.top + wr.height / 2)],
+            };
+            for (var pk in probes) {
+              var pt = probes[pk];
+              var els = document.elementsFromPoint(pt[0], pt[1]) || [];
+              var desc = els.slice(0, 5).map(function (e) {
+                var cls = (e.className && typeof e.className === 'string') ? '.' + e.className.trim().split(/\s+/).join('.') : '';
+                return e.tagName.toLowerCase() + cls;
+              }).join(' > ');
+              parts.push('PROBE ' + pk + ' (' + pt[0] + ',' + pt[1] + '): ' + desc);
+            }
+            // 同时数一数页面上有几个 .nm-key-wrap / input.nm-key-input（防重复挂载）
+            var wrapCount = document.querySelectorAll('.nm-key-wrap').length;
+            var inputCount = document.querySelectorAll('input.nm-key-input').length;
+            var panelCount = document.querySelectorAll('.nvidia-models-panel').length;
+            parts.push('COUNTS: wrap=' + wrapCount + ' input=' + inputCount + ' panel=' + panelCount);
+          }
+        } catch (e) { parts.push('PROBE ERROR ' + String(e)); }
         // 父元素链：往上最多 6 层，逐层打印边框/阴影/位置 + 伪元素
         var node = nmWrapEl;
         for (var i = 1; i <= 6 && node && node.parentElement; i++) {
@@ -1039,9 +1066,9 @@ window.__ModuleLoader__.load({
           position: 'relative',
         },
       },
-        // 宿主样式会给 input 叠加带正偏移的 inset box-shadow（只在上/左露出），
-        // 表现为「上/左边框比右/下粗」。这里用只作用于本输入框唯一类名的
-        // 作用域样式把 box-shadow/outline/appearance 清零——不影响面板其它元素。
+        // 可见区域改由 wrapper 的「背景填充」绘制（填充色整块均匀，不会出现描边不对称）。
+        // 这里用只作用于本输入框唯一类名的作用域样式，把 input 的
+        // 边框/阴影/轮廓/appearance 全部清零——不影响面板其它元素。
         h('style', { key: 'nm-key-input-reset' },
           '.nvidia-models-panel input.nm-key-input,' +
           '.nvidia-models-panel input.nm-key-input:focus,' +
@@ -1049,7 +1076,8 @@ window.__ModuleLoader__.load({
           '.nvidia-models-panel input.nm-key-input:hover{' +
           'box-shadow:none!important;outline:none!important;' +
           '-webkit-appearance:none!important;appearance:none!important;' +
-          'border:1px solid rgba(128,128,128,0.4)!important;border-radius:6px!important;}'),
+          'border:none!important;border-width:0!important;background:transparent!important;' +
+          'border-radius:6px!important;}'),
 
         h('div', {
           key: 'header',
